@@ -164,35 +164,35 @@
 <body>
 
     <div id="login-page">
-    <div class="login-card">
-        <img src="https://cdn.prod.website-files.com/64f9d0036cb97160cc26feba/67c5b4c0e514894449aca0cd_Logo%20PLN.png" alt="Logo PLN" class="pln-logo">
-        <h2>Sistem Pemutus Listrik Pelanggan</h2>
-        <p>Unit Layanan Pelanggan Bintan Center</p>
-        
-        <div class="input-box">
-            <label>Username</label>
-            <input type="text" id="username" placeholder="Masukkan username">
+        <div class="login-card">
+            <img src="https://cdn.prod.website-files.com/64f9d0036cb97160cc26feba/67c5b4c0e514894449aca0cd_Logo%20PLN.png" alt="Logo PLN" class="pln-logo">
+            <h2>Sistem Pemutus Listrik Pelanggan</h2>
+            <p>Unit Layanan Pelanggan Bintan Center</p>
+            
+            <div class="input-box">
+                <label>Username</label>
+                <input type="text" id="username" placeholder="Masukkan username">
+            </div>
+            <div class="input-box">
+                <label>Password</label>
+                <input type="password" id="password" placeholder="Masukkan password">
+            </div>
+            <button class="btn btn-primary" style="width: 100%; justify-content: center; padding: 12px;" onclick="handleLogin()">Login</button>
         </div>
-        <div class="input-box">
-            <label>Password</label>
-            <input type="password" id="password" placeholder="Masukkan password">
-        </div>
-        <button class="btn btn-primary" style="width: 100%; justify-content: center; padding: 12px;" onclick="handleLogin()">Login</button>
     </div>
-</div>
 
     <div id="main-layout">
         <sidebar>
             <div>
                 <div class="brand">
                     <img src="https://cdn.prod.website-files.com/64f9d0036cb97160cc26feba/67c5b4c0e514894449aca0cd_Logo%20PLN.png" alt="Logo PLN" class="sidebar-logo">
-                    <span>Sistem Pemutus Listrik Pelanggan</span>
+                    <span>Sistem Pemutus Listrik</span>
                 </div>
                 <ul>
-                    <li class="menu-item active" onclick="switchMenu('dashboard')"><span class="material-icons-round">dashboard</span>Dashboard</li>
-                    <li class="menu-item" onclick="switchMenu('pemutusan')"><span class="material-icons-round">power_settings_new</span>Pemutusan Listrik</li>
-                    <li class="menu-item" onclick="switchMenu('pembacaan')"><span class="material-icons-round">bolt</span>Pembacaan kWh</li>
-                    <li class="menu-item" onclick="switchMenu('tagihan')"><span class="material-icons-round">receipt_long</span> Tagihan Pelanggan</li>
+                    <li class="menu-item active" onclick="switchMenu('dashboard', event)"><span class="material-icons-round">dashboard</span>Dashboard</li>
+                    <li class="menu-item" onclick="switchMenu('pemutusan', event)"><span class="material-icons-round">power_settings_new</span>Pemutusan Listrik</li>
+                    <li class="menu-item" onclick="switchMenu('pembacaan', event)"><span class="material-icons-round">bolt</span>Pembacaan kWh</li>
+                    <li class="menu-item" onclick="switchMenu('tagihan', event)"><span class="material-icons-round">receipt_long</span> Tagihan Pelanggan</li>
                 </ul>
             </div>
             <ul>
@@ -213,7 +213,7 @@
                         <div class="card-icon" style="background: var(--accent-light); color: var(--accent-color);"><span class="material-icons-round">people</span></div>
                     </div>
                     <div class="card">
-                        <div class="card-info"><h3>Kwh MeterAktif</h3><p id="dash-active-user">0</p></div>
+                        <div class="card-info"><h3>Kwh Meter Aktif</h3><p id="dash-active-user">0</p></div>
                         <div class="card-icon" style="background: var(--success-light); color: var(--success);"><span class="material-icons-round">bolt</span></div>
                     </div>
                     <div class="card">
@@ -225,7 +225,12 @@
                 <div class="table-container">
                     <table>
                         <thead>
-                           <th>Tanggal & Waktu</th> <th>ID Pelanggan</th><th>Aktivitas Pemutusan Listrik</th><th>Status Perintah</th></tr>
+                            <tr>
+                                <th>Tanggal & Waktu</th> 
+                                <th>ID Pelanggan</th>
+                                <th>Aktivitas Pemutusan Listrik</th>
+                                <th>Status Perintah</th>
+                            </tr>
                         </thead>
                         <tbody id="log-table-body"></tbody>
                     </table>
@@ -265,6 +270,10 @@
 
             <div id="tagihan" class="content-section">
                 <header><h2>Status Administrasi & Tunggakan</h2></header>
+                <div class="alert-banner" style="background: #eff6ff; border-color: #dbeafe; color: #1e40af;">
+                    <span class="material-icons-round">info</span>
+                    <span>Halaman review status keuangan sinkron dengan sistem billing pusat ULP Bintan Center.</span>
+                </div>
                 <div class="table-container">
                     <table>
                         <thead>
@@ -279,6 +288,14 @@
     </div>
 
     <script>
+        // ==========================================
+        // KONFIGURASI UTAMA BLYNK IOT API
+        // ==========================================
+        // Masukkan AUTH TOKEN dari Device Info Blynk Anda ke dalam tanda petik di bawah ini:
+        const BLYNK_AUTH_TOKEN = "eAyNEf99daUEEYCLVu4RSVFKGml4zu5G";
+        const BLYNK_API_URL = "https://blynk.cloud/external/api";
+        // ==========================================
+
         // Database Local Terupdate: Berisi 10 Data Pelanggan Simulasi
         let dataPelanggan = [
             { id: "183010026021", nama: "Budi Santoso", kwh: 145.2, tegangan: 220.4, arus: 1.5, daya_watt: 330.6, status: "AKTIF", tagihan: 0, lunas: true },
@@ -306,24 +323,33 @@
                 document.getElementById('login-page').style.display = 'none';
                 document.getElementById('main-layout').style.display = 'block';
                 renderSemuaData();
-            } else { alert("Akses ditolak! Username/Password salah."); }
+            } else { 
+                alert("Akses ditolak! Username/Password salah."); 
+            }
         }
 
         function handleLogout() {
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
             document.getElementById('login-page').style.display = 'flex';
             document.getElementById('main-layout').style.display = 'none';
         }
 
-        function switchMenu(menuId) {
+        function switchMenu(menuId, event) {
             document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
             document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
+            
             document.getElementById(menuId).classList.add('active');
-            event.currentTarget.classList.add('active');
+            if(event && event.currentTarget) {
+                event.currentTarget.classList.add('active');
+            }
             renderSemuaData();
         }
 
         function renderSemuaData() {
-            document.getElementById('live-clock').innerText = new Date().toLocaleTimeString('id-ID') + " WIB";
+            // Jam Live digital
+            const skrg = new Date();
+            document.getElementById('live-clock').innerText = skrg.toLocaleTimeString('id-ID') + " WIB";
 
             // Hitung Statistik Dashboard
             document.getElementById('dash-total-user').innerText = dataPelanggan.length;
@@ -332,7 +358,12 @@
 
             // Render Log Aktivitas Real-Time
             document.getElementById('log-table-body').innerHTML = logAktivitas.map(log => `
-                <tr><td>${log.waktu}</td><td><code style="background:#f1f5f9; padding:4px 8px; border-radius:6px;">${log.id}</code></td><td>${log.aksi}</td><td><span class='badge badge-active'>${log.status}</span></td></tr>
+                <tr>
+                    <td>${log.waktu}</td>
+                    <td><code style="background:#f1f5f9; padding:4px 8px; border-radius:6px;">${log.id}</code></td>
+                    <td>${log.aksi}</td>
+                    <td><span class='badge badge-active'>${log.status}</span></td>
+                </tr>
             `).join('');
 
             // Render Menu Kontrol Pemutusan Sakelar
@@ -350,7 +381,7 @@
                 </tr>
             `).join('');
 
-            // Render Menu Pembacaan Sensor kWh Real-Time (Disertai Parameter Daya Sekarang W)
+            // Render Menu Pembacaan Sensor kWh Real-Time
             document.getElementById('pembacaan-table-body').innerHTML = dataPelanggan.map(p => `
                 <tr>
                     <td><code>${p.id}</code></td>
@@ -376,28 +407,61 @@
             `).join('');
         }
 
-        function toggleListrik(idx) {
-    const p = dataPelanggan[idx];
-    
-    // Format: DD/MM/YYYY HH:MM
-    const sekarang = new Date();
-    const tanggal = sekarang.toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' });
-    const jam = sekarang.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace('.', ':');
-    const waktuFull = `${tanggal} ${jam}`;
-    
-    if(p.status === "AKTIF") {
-        if(confirm(`Matikan listrik meteran ${p.id} (${p.nama})?`)) {
-            p.status = "TERPUTUS"; p.tegangan = 0; p.arus = 0; p.daya_watt = 0;
-            logAktivitas.unshift({ waktu: waktuFull, id: p.id, aksi: "Relay Dimatikan via Web Admin", status: "BERHASIL" });
+        // FUNGSI UTAMA INTEGRASI BLYNK API (ON/OFF RELAY METERAN)
+        async function toggleListrik(idx) {
+            const p = dataPelanggan[idx];
+            
+            // Konsep Blynk: Kirim 0 untuk Putus (Mati), Kirim 1 untuk Hubungkan (Hidup) pada Pin V1
+            const nilaiTarget = p.status === "AKTIF" ? 0 : 1;
+            
+            const sekarang = new Date();
+            const tanggal = sekarang.toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            const jam = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace('.', ':');
+            const waktuFull = `${tanggal} ${jam}`;
+            
+            const pesanKonfirmasi = p.status === "AKTIF" ? `Matikan listrik meteran ${p.id} (${p.nama})?` : `Hidupkan kembali listrik meteran ${p.id} (${p.nama})?`;
+            if(!confirm(pesanKonfirmasi)) return;
+
+            try {
+                // Tembak REST API Blynk untuk merubah status Virtual Pin V1 secara real-time
+                const respon = await fetch(`${BLYNK_API_URL}/update?token=${BLYNK_AUTH_TOKEN}&v1=${nilaiTarget}`);
+                
+                if(respon.ok) {
+                    if(p.status === "AKTIF") {
+                        p.status = "TERPUTUS"; p.tegangan = 0; p.arus = 0; p.daya_watt = 0;
+                        logAktivitas.unshift({ waktu: waktuFull, id: p.id, aksi: "Relay Dimatikan via Blynk IoT API", status: "BERHASIL" });
+                    } else {
+                        p.status = "AKTIF"; p.tegangan = 220; p.arus = 1.5; p.daya_watt = 330;
+                        logAktivitas.unshift({ waktu: waktuFull, id: p.id, aksi: "Relay Dihidupkan via Blynk IoT API", status: "BERHASIL" });
+                    }
+                    renderSemuaData();
+                } else {
+                    alert("Gagal mengirim perintah. Periksa kembali BLYNK_AUTH_TOKEN Anda.");
+                }
+            } catch (error) {
+                console.error("Error Blynk API:", error);
+                alert("Kesalahan Jaringan! Pastikan perangkat Anda terhubung ke internet.");
+            }
         }
-    } else {
-        if(confirm(`Hidupkan kembali listrik meteran ${p.id} (${p.nama})?`)) {
-            p.status = "AKTIF"; p.tegangan = 220; p.arus = 1.5; p.daya_watt = 330;
-            logAktivitas.unshift({ waktu: waktuFull, id: p.id, aksi: "Relay Dihidupkan via Web Admin", status: "BERHASIL" });
+
+        // MEMBACA DATA KWH DARI SENSOR FISIK DI BLYNK CLOUD (VIRTUAL PIN V2)
+        async function sinkronisasiDataBlynk() {
+            try {
+                // Ambil nilai dari Virtual Pin V2 yang dikirim oleh sensor PZEM-004T mikrokontroler
+                const respon = await fetch(`${BLYNK_API_URL}/get?token=${BLYNK_AUTH_TOKEN}&v2`);
+                if (respon.ok) {
+                    const nilaiKwhDariSensor = await respon.text();
+                    
+                    // Kita hubungkan data fisik sensor ke pelanggan Budi Santoso (sebagai contoh)
+                    if(nilaiKwhDariSensor && !isNaN(nilaiKwhDariSensor)) {
+                        dataPelanggan[0].kwh = parseFloat(nilaiKwhDariSensor);
+                        renderSemuaData();
+                    }
+                }
+            } catch (error) {
+                console.log("Menunggu koneksi hardware IoT blynk...", error);
+            }
         }
-    }
-    renderSemuaData();
-}
 
         function simulasiKenaikanKwh() {
             dataPelanggan.forEach(p => {
@@ -410,6 +474,13 @@
             });
             renderSemuaData();
         }
+
+        // Loop mengambil data sensor dari Blynk setiap 5 detik (ketika admin sedang masuk halaman)
+        setInterval(() => {
+            if(document.getElementById('main-layout').style.display === 'block') {
+                sinkronisasiDataBlynk();
+            }
+        }, 5000);
 
         // Timer Jam Digital
         setInterval(() => {

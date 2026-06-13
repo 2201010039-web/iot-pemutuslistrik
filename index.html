@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Pemutus Listrik Pelanggan - IoT Monitoring System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+    
+    <style>
+        /* --- MODEREN UI DESIGN SYSTEM --- */
+        :root {
+            --bg-primary: #f8fafc;
+            --bg-sidebar: #0f172a;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --accent-color: #3b82f6;
+            --accent-light: #eff6ff;
+            --success: #10b981;
+            --success-light: #ecfdf5;
+            --danger: #ef4444;
+            --danger-light: #fef2f2;
+            --warning: #f59e0b;
+            --card-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+            --border-radius: 12px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-main);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* --- HALAMAN LOGIN PREMIUM --- */
+        #login-page {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle at 10% 20%, rgb(90, 142, 251) 0%, rgb(41, 61, 166) 100%);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 1000;
+        }
+
+        .login-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(12px);
+            padding: 40px;
+            border-radius: 24px;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .pln-logo {
+            width: 2cm;
+            height: 2cm;
+            margin-bottom: 16px;
+            object-fit: contain;
+            display: inline-block;
+        }
+        
+        .sidebar-logo {
+            width: auto;
+            height: 35px;
+            object-fit: contain;
+        }
+
+        .login-card h2 { font-weight: 700; color: #0f172a; margin-bottom: 2px; font-size: 20px; }
+        .login-card p { color: var(--text-muted); font-size: 14px; margin-bottom: 24px; }
+
+        .input-box {
+            position: relative; margin-bottom: 20px; text-align: left;
+        }
+        .input-box label { font-size: 13px; font-weight: 500; color: var(--text-main); display: block; margin-bottom: 6px; }
+        .input-box input {
+            width: 100%; padding: 12px 16px; border: 1.5px solid #e2e8f0; border-radius: var(--border-radius);
+            font-size: 14px; transition: all 0.3s; background: #fff;
+        }
+        .input-box input:focus { outline: none; border-color: var(--accent-color); box-shadow: 0 0 0 4px var(--accent-light); }
+
+        /* --- LAYOUT UTAMA --- */
+        #main-layout { display: none; width: 100%; height: 100%; }
+
+        /* SIDEBAR */
+        sidebar {
+            width: 280px; background-color: var(--bg-sidebar); color: white;
+            display: flex; flex-direction: column; float: left; height: 100%;
+            padding: 24px; justify-content: space-between;
+        }
+
+        sidebar .brand {
+            display: flex; align-items: center; gap: 12px; font-size: 16px; font-weight: 700;
+            padding-bottom: 24px; border-bottom: 1px solid #1e293b;
+        }
+
+        sidebar ul { list-style: none; margin-top: 24px; }
+        sidebar ul li {
+            display: flex; align-items: center; gap: 14px; padding: 12px 16px;
+            border-radius: var(--border-radius); cursor: pointer; margin-bottom: 8px;
+            color: #94a3b8; font-weight: 500; transition: all 0.3s;
+        }
+        sidebar ul li:hover, sidebar ul li.active { background-color: #1e293b; color: white; }
+        sidebar ul li.active { background-color: var(--accent-color); color: white; }
+        sidebar ul li.logout-btn { background-color: #1e293b; color: #f87171; }
+        sidebar ul li.logout-btn:hover { background-color: var(--danger); color: white; }
+
+        /* CONTENT AREA */
+        .content { margin-left: 280px; padding: 40px; height: 100%; overflow-y: auto; }
+        .content-section { display: none; }
+        .content-section.active { display: block; animation: fadeIn 0.4s ease-in-out; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        header {
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px;
+        }
+        header h2 { font-size: 26px; font-weight: 700; color: #0f172a; }
+        .server-time { font-size: 14px; background: white; padding: 8px 16px; border-radius: 30px; box-shadow: var(--card-shadow); display: flex; align-items: center; gap: 8px; font-weight: 500;}
+
+        /* UTILITY BUTTONS & BADGES */
+        .btn {
+            display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border: none;
+            border-radius: var(--border-radius); cursor: pointer; font-weight: 600; font-size: 14px; transition: all 0.3s;
+        }
+        .btn-primary { background-color: var(--accent-color); color: white; }
+        .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+        .btn-danger { background-color: var(--danger-light); color: var(--danger); }
+        .btn-danger:hover { background-color: var(--danger); color: white; }
+        .btn-success { background-color: var(--success-light); color: var(--success); }
+        .btn-success:hover { background-color: var(--success); color: white; }
+
+        .badge { padding: 6px 12px; border-radius: 30px; font-size: 12px; font-weight: 600; display: inline-block; }
+        .badge-active { background-color: var(--success-light); color: var(--success); }
+        .badge-cut { background-color: var(--danger-light); color: var(--danger); }
+        .badge-warning { background-color: #fffbeb; color: var(--warning); }
+
+        /* DASHBOARD CARDS */
+        .grid-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 24px; margin-bottom: 32px; }
+        .card { background: white; padding: 24px; border-radius: var(--border-radius); box-shadow: var(--card-shadow); display: flex; align-items: center; justify-content: space-between; }
+        .card-info h3 { font-size: 14px; color: var(--text-muted); font-weight: 500; margin-bottom: 6px; }
+        .card-info p { font-size: 28px; font-weight: 700; color: #0f172a; }
+        .card-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
+
+        /* DATA TABLES */
+        .table-container { background: white; border-radius: var(--border-radius); box-shadow: var(--card-shadow); overflow: hidden; margin-top: 20px; }
+        table { width: 100%; border-collapse: collapse; text-align: left; font-size: 14px; }
+        table th { background-color: #f8fafc; padding: 16px 24px; color: var(--text-muted); font-weight: 600; border-bottom: 1px solid #e2e8f0; }
+        table td { padding: 16px 24px; border-bottom: 1px solid #f1f5f9; color: var(--text-main); font-weight: 500; }
+        table tr:last-child td { border: none; }
+
+        /* ALERT BANNER */
+        .alert-banner { display: flex; gap: 12px; background: #fffbeb; border: 1px solid #fef3c7; padding: 16px; border-radius: var(--border-radius); margin-bottom: 24px; color: #b45309; font-size: 14px; }
+    </style>
+</head>
+<body>
+
+    <div id="login-page">
+    <div class="login-card">
+        <img src="https://cdn.prod.website-files.com/64f9d0036cb97160cc26feba/67c5b4c0e514894449aca0cd_Logo%20PLN.png" alt="Logo PLN" class="pln-logo">
+        <h2>Sistem Pemutus Listrik Pelanggan</h2>
+        <p>Unit Layanan Pelanggan Bintan Center</p>
+        
+        <div class="input-box">
+            <label>Username</label>
+            <input type="text" id="username" placeholder="Masukkan username">
+        </div>
+        <div class="input-box">
+            <label>Password</label>
+            <input type="password" id="password" placeholder="Masukkan password">
+        </div>
+        <button class="btn btn-primary" style="width: 100%; justify-content: center; padding: 12px;" onclick="handleLogin()">Login</button>
+    </div>
+</div>
+
+    <div id="main-layout">
+        <sidebar>
+            <div>
+                <div class="brand">
+                    <img src="https://cdn.prod.website-files.com/64f9d0036cb97160cc26feba/67c5b4c0e514894449aca0cd_Logo%20PLN.png" alt="Logo PLN" class="sidebar-logo">
+                    <span>Sistem Pemutus Listrik Pelanggan</span>
+                </div>
+                <ul>
+                    <li class="menu-item active" onclick="switchMenu('dashboard')"><span class="material-icons-round">dashboard</span>Dashboard</li>
+                    <li class="menu-item" onclick="switchMenu('pemutusan')"><span class="material-icons-round">power_settings_new</span>Pemutusan Listrik</li>
+                    <li class="menu-item" onclick="switchMenu('pembacaan')"><span class="material-icons-round">bolt</span>Pembacaan kWh</li>
+                    <li class="menu-item" onclick="switchMenu('tagihan')"><span class="material-icons-round">receipt_long</span> Tagihan Pelanggan</li>
+                </ul>
+            </div>
+            <ul>
+                <li class="logout-btn" onclick="handleLogout()"><span class="material-icons-round">logout</span>Logout</li>
+            </ul>
+        </sidebar>
+
+        <div class="content">
+            
+            <div id="dashboard" class="content-section active">
+                <header>
+                    <h2>PT PLN (PERSERO) ULP BINTAN CENTER</h2>
+                    <div class="server-time"><span class="material-icons-round" style="color: var(--accent-color); font-size: 18px;">schedule</span><span id="live-clock"></span></div>
+                </header>
+                <div class="grid-cards">
+                    <div class="card">
+                        <div class="card-info"><h3>Total Pelanggan</h3><p id="dash-total-user">0</p></div>
+                        <div class="card-icon" style="background: var(--accent-light); color: var(--accent-color);"><span class="material-icons-round">people</span></div>
+                    </div>
+                    <div class="card">
+                        <div class="card-info"><h3>Kwh MeterAktif</h3><p id="dash-active-user">0</p></div>
+                        <div class="card-icon" style="background: var(--success-light); color: var(--success);"><span class="material-icons-round">bolt</span></div>
+                    </div>
+                    <div class="card">
+                        <div class="card-info"><h3>Kwh Meter Terputus</h3><p id="dash-cut-user">0</p></div>
+                        <div class="card-icon" style="background: var(--danger-light); color: var(--danger);"><span class="material-icons-round">power_off</span></div>
+                    </div>
+                </div>
+                <h3 style="font-weight: 600; font-size: 18px; margin-bottom: 12px;">Log Aktivitas</h3>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                           <th>Tanggal & Waktu</th> <th>ID Pelanggan</th><th>Aktivitas Pemutusan Listrik</th><th>Status Perintah</th></tr>
+                        </thead>
+                        <tbody id="log-table-body"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="pemutusan" class="content-section">
+                <header><h2>Sistem Kontrol Alat Pada Pelanggan</h2></header>
+                <div class="alert-banner">
+                    <span class="material-icons-round">warning</span>
+                    <span><b>Perhatian:</b> Menekan tombol putus akan langsung mengirim sinyal ke mikrokontroler IoT untuk mematikan relay utama fisik pelanggan.</span>
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr><th>ID Pelanggan</th><th>Nama Pelanggan</th><th>Status Listrik</th><th>Status IoT</th></tr>
+                        </thead>
+                        <tbody id="pemutusan-table-body"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="pembacaan" class="content-section">
+                <header>
+                    <h2>Sistem Parameter Kwh Meter Pascabayar</h2>
+                    <button class="btn btn-primary" onclick="simulasiKenaikanKwh()"><span class="material-icons-round">sync</span>Simulasikan Data Sensor</button>
+                </header>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr><th>ID Pelanggan</th><th>Nama Pelanggan</th><th>Total(kWh)</th><th>Tegangan</th><th>Arus</th><th>Daya Saat Ini</th><th>Update</th></tr>
+                        </thead>
+                        <tbody id="pembacaan-table-body"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="tagihan" class="content-section">
+                <header><h2>Status Administrasi & Tunggakan</h2></header>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr><th>ID Pelanggan</th><th>Nama Pelanggan</th><th>Penggunaan</th><th>Total Tagihan</th><th>Status Keuangan</th><th>Rekomendasi IoT</th></tr>
+                        </thead>
+                        <tbody id="tagihan-table-body"></tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // Database Local Terupdate: Berisi 10 Data Pelanggan Simulasi
+        let dataPelanggan = [
+            { id: "183010026021", nama: "Budi Santoso", kwh: 145.2, tegangan: 220.4, arus: 1.5, daya_watt: 330.6, status: "AKTIF", tagihan: 0, lunas: true },
+            { id: "183010026022", nama: "Siti Rahma", kwh: 389.7, tegangan: 218.1, arus: 3.2, daya_watt: 697.9, status: "AKTIF", tagihan: 0, lunas: true },
+            { id: "183010026023", nama: "Agus Wijaya", kwh: 512.0, tegangan: 0.0, arus: 0.0, daya_watt: 0.0, status: "TERPUTUS", tagihan: 780000, lunas: false },
+            { id: "183010026024", nama: "Eko Prasetyo", kwh: 210.5, tegangan: 219.5, arus: 2.1, daya_watt: 460.9, status: "AKTIF", tagihan: 0, lunas: true },
+            { id: "183010026025", nama: "Dewi Lestari", kwh: 98.4,  tegangan: 221.2, arus: 0.8, daya_watt: 176.9, status: "AKTIF", tagihan: 125000, lunas: false },
+            { id: "183010026026", nama: "Hendra Wijaya", kwh: 641.2, tegangan: 217.9, arus: 5.4, daya_watt: 1176.6, status: "AKTIF", tagihan: 0, lunas: true },
+            { id: "183010026027", nama: "Rina Marlina", kwh: 175.3, tegangan: 220.1, arus: 1.2, daya_watt: 264.1, status: "AKTIF", tagihan: 0, lunas: true },
+            { id: "183010026028", nama: "Andi Saputra", kwh: 430.8, tegangan: 0.0, arus: 0.0, daya_watt: 0.0, status: "TERPUTUS", tagihan: 950000, lunas: false },
+            { id: "183010026029", nama: "Mega Utami", kwh: 312.6, tegangan: 219.8, arus: 2.8, daya_watt: 615.4, status: "AKTIF", tagihan: 0, lunas: true },
+            { id: "183010026030", nama: "Roni Setiawan", kwh: 55.1,  tegangan: 220.6, arus: 0.5, daya_watt: 110.3, status: "AKTIF", tagihan: 65000,  lunas: false }
+        ];
+
+        let logAktivitas = [
+            { waktu: "13/06/2026 16:45", id: "183010026023", aksi: "Relay Diputus Otomatis (Tunggakan > 3 Bulan)", status: "BERHASIL" },
+            { waktu: "13/06/2026 15:20", id: "183010026021", aksi: "Sinkronisasi Tegangan Sensor Utama", status: "BERHASIL" },
+            { waktu: "13/06/2026 11:05", id: "183010026028", aksi: "Relay Diputus Otomatis (Tunggakan Belum Dibayar)", status: "BERHASIL" } 
+        ];
+
+        function handleLogin() {
+            const user = document.getElementById('username').value;
+            const pass = document.getElementById('password').value;
+            if(user === "UlpBintan" && pass === "Listrikpln123") {
+                document.getElementById('login-page').style.display = 'none';
+                document.getElementById('main-layout').style.display = 'block';
+                renderSemuaData();
+            } else { alert("Akses ditolak! Username/Password salah."); }
+        }
+
+        function handleLogout() {
+            document.getElementById('login-page').style.display = 'flex';
+            document.getElementById('main-layout').style.display = 'none';
+        }
+
+        function switchMenu(menuId) {
+            document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
+            document.getElementById(menuId).classList.add('active');
+            event.currentTarget.classList.add('active');
+            renderSemuaData();
+        }
+
+        function renderSemuaData() {
+            document.getElementById('live-clock').innerText = new Date().toLocaleTimeString('id-ID') + " WIB";
+
+            // Hitung Statistik Dashboard
+            document.getElementById('dash-total-user').innerText = dataPelanggan.length;
+            document.getElementById('dash-active-user').innerText = dataPelanggan.filter(p => p.status === "AKTIF").length;
+            document.getElementById('dash-cut-user').innerText = dataPelanggan.filter(p => p.status === "TERPUTUS").length;
+
+            // Render Log Aktivitas Real-Time
+            document.getElementById('log-table-body').innerHTML = logAktivitas.map(log => `
+                <tr><td>${log.waktu}</td><td><code style="background:#f1f5f9; padding:4px 8px; border-radius:6px;">${log.id}</code></td><td>${log.aksi}</td><td><span class='badge badge-active'>${log.status}</span></td></tr>
+            `).join('');
+
+            // Render Menu Kontrol Pemutusan Sakelar
+            document.getElementById('pemutusan-table-body').innerHTML = dataPelanggan.map((p, idx) => `
+                <tr>
+                    <td><code>${p.id}</code></td>
+                    <td><strong>${p.nama}</strong></td>
+                    <td><span class="badge ${p.status === 'AKTIF' ? 'badge-active' : 'badge-cut'}">${p.status}</span></td>
+                    <td>
+                        <button class="btn ${p.status === 'AKTIF' ? 'btn-danger' : 'btn-success'}" onclick="toggleListrik(${idx})">
+                            <span class="material-icons-round" style="font-size:16px;">${p.status === 'AKTIF' ? 'power_off' : 'bolt'}</span>
+                            ${p.status === 'AKTIF' ? 'Putuskan Aliran' : 'Hubungkan Aliran'}
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+
+            // Render Menu Pembacaan Sensor kWh Real-Time (Disertai Parameter Daya Sekarang W)
+            document.getElementById('pembacaan-table-body').innerHTML = dataPelanggan.map(p => `
+                <tr>
+                    <td><code>${p.id}</code></td>
+                    <td>${p.nama}</td>
+                    <td><span style="color:var(--accent-color); font-weight:600">${p.kwh.toFixed(2)} kWh</span></td>
+                    <td>${p.tegangan.toFixed(1)} V</td>
+                    <td>${p.arus.toFixed(1)} A</td>
+                    <td><span style="color:var(--warning); font-weight:600">${p.daya_watt.toFixed(1)} W</span></td>
+                    <td style="color:var(--text-muted); font-size:12px;">Baru saja</td>
+                </tr>
+            `).join('');
+
+            // Render Menu Tagihan & Keuangan Pelanggan
+            document.getElementById('tagihan-table-body').innerHTML = dataPelanggan.map(p => `
+                <tr>
+                    <td><code>${p.id}</code></td>
+                    <td>${p.nama}</td>
+                    <td>${p.kwh.toFixed(1)} kWh</td>
+                    <td><strong>Rp ${p.tagihan.toLocaleString('id-ID')}</strong></td>
+                    <td><span class="badge ${p.lunas ? 'badge-active' : 'badge-cut'}">${p.lunas ? 'Lunas' : 'Ada Tunggakan'}</span></td>
+                    <td><span style="font-weight:600; color:${p.lunas ? 'var(--success)' : 'var(--danger)'}">${p.lunas ? 'Sistem Aman' : 'Rekomendasi Putus'}</span></td>
+                </tr>
+            `).join('');
+        }
+
+        function toggleListrik(idx) {
+    const p = dataPelanggan[idx];
+    
+    // Format: DD/MM/YYYY HH:MM
+    const sekarang = new Date();
+    const tanggal = sekarang.toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const jam = sekarang.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace('.', ':');
+    const waktuFull = `${tanggal} ${jam}`;
+    
+    if(p.status === "AKTIF") {
+        if(confirm(`Matikan listrik meteran ${p.id} (${p.nama})?`)) {
+            p.status = "TERPUTUS"; p.tegangan = 0; p.arus = 0; p.daya_watt = 0;
+            logAktivitas.unshift({ waktu: waktuFull, id: p.id, aksi: "Relay Dimatikan via Web Admin", status: "BERHASIL" });
+        }
+    } else {
+        if(confirm(`Hidupkan kembali listrik meteran ${p.id} (${p.nama})?`)) {
+            p.status = "AKTIF"; p.tegangan = 220; p.arus = 1.5; p.daya_watt = 330;
+            logAktivitas.unshift({ waktu: waktuFull, id: p.id, aksi: "Relay Dihidupkan via Web Admin", status: "BERHASIL" });
+        }
+    }
+    renderSemuaData();
+}
+
+        function simulasiKenaikanKwh() {
+            dataPelanggan.forEach(p => {
+                if(p.status === "AKTIF") {
+                    p.kwh += Math.random() * 0.8;
+                    p.tegangan = +(218 + Math.random() * 5).toFixed(1);
+                    p.arus = +(0.5 + Math.random() * 4).toFixed(1);
+                    p.daya_watt = +(p.tegangan * p.arus).toFixed(1);
+                }
+            });
+            renderSemuaData();
+        }
+
+        // Timer Jam Digital
+        setInterval(() => {
+            const timeStr = new Date().toLocaleTimeString('id-ID') + " WIB";
+            const clockEl = document.getElementById('live-clock');
+            if (clockEl) clockEl.innerText = timeStr;
+        }, 1000);
+    </script>
+</body>
+</html>

@@ -7,6 +7,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
     
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    
     <style>
         /* --- MODEREN UI DESIGN SYSTEM --- */
         :root {
@@ -40,7 +42,7 @@
             overflow: hidden;
         }
 
-        /* --- HALAMAN LOGIN PREMIUM --- */
+        /* --- HALAMAN LOGIN --- */
         #login-page {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -126,7 +128,7 @@
         header h2 { font-size: 26px; font-weight: 700; color: #0f172a; }
         .server-time { font-size: 14px; background: white; padding: 8px 16px; border-radius: 30px; box-shadow: var(--card-shadow); display: flex; align-items: center; gap: 8px; font-weight: 500;}
 
-        /* UTILITY BUTTONS & BADGES */
+        /* BUTTONS & BADGES */
         .btn {
             display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border: none;
             border-radius: var(--border-radius); cursor: pointer; font-weight: 600; font-size: 14px; transition: all 0.3s;
@@ -141,58 +143,66 @@
         .badge { padding: 6px 12px; border-radius: 30px; font-size: 12px; font-weight: 600; display: inline-block; }
         .badge-active { background-color: var(--success-light); color: var(--success); }
         .badge-cut { background-color: var(--danger-light); color: var(--danger); }
-        .badge-warning { background-color: #fffbeb; color: var(--warning); }
 
-        /* DASHBOARD CARDS */
+        /* CARDS */
         .grid-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 24px; margin-bottom: 32px; }
         .card { background: white; padding: 24px; border-radius: var(--border-radius); box-shadow: var(--card-shadow); display: flex; align-items: center; justify-content: space-between; }
         .card-info h3 { font-size: 14px; color: var(--text-muted); font-weight: 500; margin-bottom: 6px; }
         .card-info p { font-size: 28px; font-weight: 700; color: #0f172a; }
         .card-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
 
-        /* DATA TABLES */
+        /* TABLES */
         .table-container { background: white; border-radius: var(--border-radius); box-shadow: var(--card-shadow); overflow: hidden; margin-top: 20px; }
         table { width: 100%; border-collapse: collapse; text-align: left; font-size: 14px; }
         table th { background-color: #f8fafc; padding: 16px 24px; color: var(--text-muted); font-weight: 600; border-bottom: 1px solid #e2e8f0; }
         table td { padding: 16px 24px; border-bottom: 1px solid #f1f5f9; color: var(--text-main); font-weight: 500; }
-        table tr:last-child td { border: none; }
 
-        /* ALERT BANNER */
+        /* BANNER */
         .alert-banner { display: flex; gap: 12px; background: #fffbeb; border: 1px solid #fef3c7; padding: 16px; border-radius: var(--border-radius); margin-bottom: 24px; color: #b45309; font-size: 14px; }
+        
+        /* FILE UPLOAD STYLING */
+        .upload-wrapper {
+            background: white; padding: 24px; border-radius: var(--border-radius); box-shadow: var(--card-shadow);
+            border: 2px dashed #cbd5e1; text-align: center; margin-bottom: 24px; transition: all 0.3s;
+        }
+        .upload-wrapper:hover { border-color: var(--accent-color); background: var(--accent-light); }
+        .upload-wrapper input[type="file"] { display: none; }
+        .upload-wrapper label { cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 8px; color: var(--text-muted); font-weight: 500; }
     </style>
 </head>
 <body>
 
     <div id="login-page">
-    <div class="login-card">
-        <img src="https://cdn.prod.website-files.com/64f9d0036cb97160cc26feba/67c5b4c0e514894449aca0cd_Logo%20PLN.png" alt="Logo PLN" class="pln-logo">
-        <h2>Sistem Pemutus Listrik Pelanggan</h2>
-        <p>Unit Layanan Pelanggan Bintan Center</p>
-        
-        <div class="input-box">
-            <label>Username</label>
-            <input type="text" id="username" placeholder="Masukkan username">
+        <div class="login-card">
+            <img src="https://cdn.prod.website-files.com/64f9d0036cb97160cc26feba/67c5b4c0e514894449aca0cd_Logo%20PLN.png" alt="Logo PLN" class="pln-logo">
+            <h2>Sistem Pemutus Listrik Pelanggan</h2>
+            <p>Unit Layanan Pelanggan Bintan Center</p>
+            
+            <div class="input-box">
+                <label>Username</label>
+                <input type="text" id="username" placeholder="Masukkan username">
+            </div>
+            <div class="input-box">
+                <label>Password</label>
+                <input type="password" id="password" placeholder="Masukkan password">
+            </div>
+            <button class="btn btn-primary" style="width: 100%; justify-content: center; padding: 12px;" onclick="handleLogin()">Login</button>
         </div>
-        <div class="input-box">
-            <label>Password</label>
-            <input type="password" id="password" placeholder="Masukkan password">
-        </div>
-        <button class="btn btn-primary" style="width: 100%; justify-content: center; padding: 12px;" onclick="handleLogin()">Login</button>
     </div>
-</div>
 
     <div id="main-layout">
         <sidebar>
             <div>
                 <div class="brand">
                     <img src="https://cdn.prod.website-files.com/64f9d0036cb97160cc26feba/67c5b4c0e514894449aca0cd_Logo%20PLN.png" alt="Logo PLN" class="sidebar-logo">
-                    <span>Sistem Pemutus Listrik Pelanggan</span>
+                    <span>Sistem Pemutus Listrik</span>
                 </div>
                 <ul>
-                    <li class="menu-item active" onclick="switchMenu('dashboard')"><span class="material-icons-round">dashboard</span>Dashboard</li>
-                    <li class="menu-item" onclick="switchMenu('pemutusan')"><span class="material-icons-round">power_settings_new</span>Pemutusan Listrik</li>
-                    <li class="menu-item" onclick="switchMenu('pembacaan')"><span class="material-icons-round">bolt</span>Pembacaan kWh</li>
-                    <li class="menu-item" onclick="switchMenu('tagihan')"><span class="material-icons-round">receipt_long</span> Tagihan Pelanggan</li>
+                    <li class="menu-item active" onclick="switchMenu('dashboard', event)"><span class="material-icons-round">dashboard</span>Dashboard</li>
+                    <li class="menu-item" onclick="switchMenu('pemutusan', event)"><span class="material-icons-round">power_settings_new</span>Pemutusan Listrik</li>
+                    <li class="menu-item" onclick="switchMenu('pembacaan', event)"><span class="material-icons-round">bolt</span>Pembacaan kWh</li>
+                    <li class="menu-item" onclick="switchMenu('tagihan', event)"><span class="material-icons-round">receipt_long</span> Tagihan Pelanggan</li>
+                    <li class="menu-item" onclick="switchMenu('kelola-data', event)"><span class="material-icons-round">upload_file</span> Input Data Pelanggan</li>
                 </ul>
             </div>
             <ul>
@@ -213,7 +223,7 @@
                         <div class="card-icon" style="background: var(--accent-light); color: var(--accent-color);"><span class="material-icons-round">people</span></div>
                     </div>
                     <div class="card">
-                        <div class="card-info"><h3>Kwh MeterAktif</h3><p id="dash-active-user">0</p></div>
+                        <div class="card-info"><h3>Kwh Meter Aktif</h3><p id="dash-active-user">0</p></div>
                         <div class="card-icon" style="background: var(--success-light); color: var(--success);"><span class="material-icons-round">bolt</span></div>
                     </div>
                     <div class="card">
@@ -225,7 +235,12 @@
                 <div class="table-container">
                     <table>
                         <thead>
-                           <th>Tanggal & Waktu</th> <th>ID Pelanggan</th><th>Aktivitas Pemutusan Listrik</th><th>Status Perintah</th></tr>
+                            <tr>
+                                <th>Tanggal & Waktu</th> 
+                                <th>ID Pelanggan</th>
+                                <th>Aktivitas Pemutusan Listrik</th>
+                                <th>Status Perintah</th>
+                            </tr>
                         </thead>
                         <tbody id="log-table-body"></tbody>
                     </table>
@@ -241,7 +256,7 @@
                 <div class="table-container">
                     <table>
                         <thead>
-                            <tr><th>ID Pelanggan</th><th>Nama Pelanggan</th><th>Status Listrik</th><th>Status IoT</th></tr>
+                            <tr><th>ID Pelanggan</th><th>Nama Pelanggan</th><th>Alamat</th><th>Status Listrik</th><th>Status IoT</th></tr>
                         </thead>
                         <tbody id="pemutusan-table-body"></tbody>
                     </table>
@@ -251,12 +266,12 @@
             <div id="pembacaan" class="content-section">
                 <header>
                     <h2>Sistem Parameter Kwh Meter Pascabayar</h2>
-                    <button class="btn btn-primary" onclick="simulasiKenaikanKwh()"><span class="material-icons-round">sync</span>Simulasikan Data Sensor</button>
+                    
                 </header>
                 <div class="table-container">
                     <table>
                         <thead>
-                            <tr><th>ID Pelanggan</th><th>Nama Pelanggan</th><th>Total(kWh)</th><th>Tegangan</th><th>Arus</th><th>Daya Saat Ini</th><th>Update</th></tr>
+                            <tr><th>ID Pelanggan</th><th>Nama Pelanggan</th><th>Alamat</th><th>Total(kWh)</th><th>Tegangan</th><th>Arus</th><th>Daya Saat Ini</th></tr>
                         </thead>
                         <tbody id="pembacaan-table-body"></tbody>
                     </table>
@@ -265,12 +280,56 @@
 
             <div id="tagihan" class="content-section">
                 <header><h2>Status Administrasi & Tunggakan</h2></header>
+                <div class="alert-banner" style="background: #eff6ff; border-color: #dbeafe; color: #1e40af;">
+                    <span class="material-icons-round">info</span>
+                    <span>Halaman review status keuangan sinkron dengan sistem billing pusat ULP Bintan Center.</span>
+                </div>
                 <div class="table-container">
                     <table>
                         <thead>
-                            <tr><th>ID Pelanggan</th><th>Nama Pelanggan</th><th>Penggunaan</th><th>Total Tagihan</th><th>Status Keuangan</th><th>Rekomendasi IoT</th></tr>
+                            <tr><th>ID Pelanggan</th><th>Nama Pelanggan</th><th>Alamat</th><th>Penggunaan</th><th>Total Tagihan</th><th>Status Keuangan</th><th>Rekomendasi IoT</th></tr>
                         </thead>
                         <tbody id="tagihan-table-body"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="kelola-data" class="content-section">
+                <header>
+                    <h2>Kelola & Unggah Data Riil Pelanggan</h2>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn btn-success" onclick="unduhLaporanExcel()"><span class="material-icons-round">download</span>Unduh Laporan Excel (Semua Data)</button>
+                        <button class="btn btn-danger" onclick="hapusSemuaDataSimulasi()"><span class="material-icons-round">delete_sweep</span>Kosongkan Semua Data</button>
+                    </div>
+                </header>
+                
+                <div class="alert-banner" style="background: #eff6ff; border-color: #dbeafe; color: #1e40af;">
+                    <span class="material-icons-round">info</span>
+                    <span>Format unggahan wajib memiliki 3 kolom: <b>Id Pelanggan</b>, <b>Nama</b>, dan <b>Alamat</b>. Silahkan Untuk Mengupload File Excel (.xlsx / .xls) untuk mengunggah data pelanggan & Data disimpan permanen di laman ini.</span>
+                </div>
+
+                <div class="upload-wrapper">
+                    <input type="file" id="excel-file-input" accept=".xlsx, .xls" onchange="prosesFileExcel(event)">
+                    <label for="excel-file-input">
+                        <span class="material-icons-round" style="font-size: 48px; color: var(--accent-color);">upload_file</span>
+                        <span>Klik di sini untuk mengunggah berkas Excel (.xlsx / .xls)</span>
+                    </label>
+                </div>
+
+                <h3 style="font-weight: 600; font-size: 18px; margin-bottom: 12px;">Daftar Kontrol Data Aktif</h3>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID Pelanggan</th>
+                                <th>Nama Pelanggan</th>
+                                <th>Alamat</th>
+                                <th>Status Listrik</th>
+                                <th>Tagihan Aktif</th>
+                                <th>Aksi Pembersihan</th>
+                            </tr>
+                        </thead>
+                        <tbody id="kelola-table-body"></tbody>
                     </table>
                 </div>
             </div>
@@ -279,25 +338,23 @@
     </div>
 
     <script>
-        // Database Local Terupdate: Berisi 10 Data Pelanggan Simulasi
-        let dataPelanggan = [
-            { id: "183010026021", nama: "Budi Santoso", kwh: 145.2, tegangan: 220.4, arus: 1.5, daya_watt: 330.6, status: "AKTIF", tagihan: 0, lunas: true },
-            { id: "183010026022", nama: "Siti Rahma", kwh: 389.7, tegangan: 218.1, arus: 3.2, daya_watt: 697.9, status: "AKTIF", tagihan: 0, lunas: true },
-            { id: "183010026023", nama: "Agus Wijaya", kwh: 512.0, tegangan: 0.0, arus: 0.0, daya_watt: 0.0, status: "TERPUTUS", tagihan: 780000, lunas: false },
-            { id: "183010026024", nama: "Eko Prasetyo", kwh: 210.5, tegangan: 219.5, arus: 2.1, daya_watt: 460.9, status: "AKTIF", tagihan: 0, lunas: true },
-            { id: "183010026025", nama: "Dewi Lestari", kwh: 98.4,  tegangan: 221.2, arus: 0.8, daya_watt: 176.9, status: "AKTIF", tagihan: 125000, lunas: false },
-            { id: "183010026026", nama: "Hendra Wijaya", kwh: 641.2, tegangan: 217.9, arus: 5.4, daya_watt: 1176.6, status: "AKTIF", tagihan: 0, lunas: true },
-            { id: "183010026027", nama: "Rina Marlina", kwh: 175.3, tegangan: 220.1, arus: 1.2, daya_watt: 264.1, status: "AKTIF", tagihan: 0, lunas: true },
-            { id: "183010026028", nama: "Andi Saputra", kwh: 430.8, tegangan: 0.0, arus: 0.0, daya_watt: 0.0, status: "TERPUTUS", tagihan: 950000, lunas: false },
-            { id: "183010026029", nama: "Mega Utami", kwh: 312.6, tegangan: 219.8, arus: 2.8, daya_watt: 615.4, status: "AKTIF", tagihan: 0, lunas: true },
-            { id: "183010026030", nama: "Roni Setiawan", kwh: 55.1,  tegangan: 220.6, arus: 0.5, daya_watt: 110.3, status: "AKTIF", tagihan: 65000,  lunas: false }
-        ];
+        // ==========================================
+        // CONFIG UTAMA BLYNK IOT API
+        // ==========================================
+        const BLYNK_AUTH_TOKEN = "eAyNEf99daUEEYCLVu4RSVFKGml4zu5G"; 
+        const BLYNK_API_URL = "https://blynk.cloud/external/api";
+        // ==========================================
 
-        let logAktivitas = [
-            { waktu: "13/06/2026 16:45", id: "183010026023", aksi: "Relay Diputus Otomatis (Tunggakan > 3 Bulan)", status: "BERHASIL" },
-            { waktu: "13/06/2026 15:20", id: "183010026021", aksi: "Sinkronisasi Tegangan Sensor Utama", status: "BERHASIL" },
-            { waktu: "13/06/2026 11:05", id: "183010026028", aksi: "Relay Diputus Otomatis (Tunggakan Belum Dibayar)", status: "BERHASIL" } 
-        ];
+        // KINI DATA AWAL DIBACA DARI LOCALSTORAGE (PERMANEN) ATAU KOSONG JIKA BELUM ADA FILE UPLOAD
+        let dataPelanggan = JSON.parse(localStorage.getItem('pln_data_pelanggan')) || [];
+
+        // Log aktivitas juga disimpan di LocalStorage agar sinkron
+        let logAktivitas = JSON.parse(localStorage.getItem('pln_log_aktivitas')) || [];
+
+        function simpanDataKeStorage() {
+            localStorage.setItem('pln_data_pelanggan', JSON.stringify(dataPelanggan));
+            localStorage.setItem('pln_log_aktivitas', JSON.stringify(logAktivitas));
+        }
 
         function handleLogin() {
             const user = document.getElementById('username').value;
@@ -306,100 +363,299 @@
                 document.getElementById('login-page').style.display = 'none';
                 document.getElementById('main-layout').style.display = 'block';
                 renderSemuaData();
-            } else { alert("Akses ditolak! Username/Password salah."); }
+            } else { 
+                alert("Akses ditolak! Username/Password salah."); 
+            }
         }
 
         function handleLogout() {
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
             document.getElementById('login-page').style.display = 'flex';
             document.getElementById('main-layout').style.display = 'none';
         }
 
-        function switchMenu(menuId) {
+        function switchMenu(menuId, event) {
             document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
             document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
+            
             document.getElementById(menuId).classList.add('active');
-            event.currentTarget.classList.add('active');
+            if(event && event.currentTarget) {
+                event.currentTarget.classList.add('active');
+            }
             renderSemuaData();
         }
 
-        function renderSemuaData() {
-            document.getElementById('live-clock').innerText = new Date().toLocaleTimeString('id-ID') + " WIB";
+        // ==========================================
+        // PROSES PEMBACAAN EXCEL DENGAN GENERATE DATA RANDOM STRATEGIS
+        // ==========================================
+        function prosesFileExcel(event) {
+            const file = event.target.files[0];
+            if (!file) return;
 
-            // Hitung Statistik Dashboard
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const sheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[sheetName];
+                
+                const JSONData = XLSX.utils.sheet_to_json(worksheet);
+                
+                if (JSONData.length === 0) {
+                    alert("File Excel kosong atau format kolom tidak sesuai!");
+                    return;
+                }
+
+                const dataHasilImport = JSONData.map(item => {
+                    const idPelanggan = item.id || item.ID || item['Id Pelanggan'] || item['ID Pelanggan'] || Math.floor(Math.random() * 100000000000);
+                    const namaPelanggan = item.nama || item.Nama || item['Nama Pelanggan'] || "Tanpa Nama";
+                    const alamatPelanggan = item.alamat || item.Alamat || item['Alamat Pelanggan'] || "Tidak Ada Alamat";
+                    
+                    const statusAwal = Math.random() > 0.2 ? "AKTIF" : "TERPUTUS";
+                    const isAktif = statusAwal === "AKTIF";
+                    
+                    const kwhAcak = +(Math.random() * 520 + 30).toFixed(1);
+                    const teganganAcak = isAktif ? +(216 + Math.random() * 6).toFixed(1) : 0.0;
+                    const arusAcak = isAktif ? +(0.4 + Math.random() * 4.5).toFixed(1) : 0.0;
+                    const dayaAcak = +(teganganAcak * arusAcak).toFixed(1);
+                    
+                    let tagihanAcak = 0;
+                    let apakahLunas = true;
+                    
+                    if (!isAktif) {
+                        tagihanAcak = Math.floor(Math.random() * 5 + 3) * 135000;
+                        apakahLunas = false;
+                    } else if (Math.random() > 0.7) {
+                        tagihanAcak = Math.floor(Math.random() * 3 + 1) * 70000;
+                        apakahLunas = false;
+                    }
+
+                    return {
+                        id: String(idPelanggan).trim(),
+                        nama: String(namaPelanggan).trim(),
+                        alamat: String(alamatPelanggan).trim(),
+                        kwh: kwhAcak,
+                        tegangan: teganganAcak,
+                        arus: arusAcak,
+                        daya_watt: dayaAcak,
+                        status: statusAwal,
+                        tagihan: tagihanAcak,
+                        lunas: apakahLunas
+                    };
+                });
+
+                dataPelanggan = [...dataPelanggan, ...dataHasilImport];
+                simpanDataKeStorage();
+                alert(`Berhasil mengimpor ${dataHasilImport.length} pelanggan dari Excel dengan parameter random default!`);
+                event.target.value = ''; 
+                renderSemuaData();
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        // ==========================================
+        // FITUR BARU: EXPORT DATA KE FILE EXCEL UNTUK DI-DOWNLOAD
+        // ==========================================
+        function unduhLaporanExcel() {
+            if (dataPelanggan.length === 0) {
+                alert("Tidak ada data yang tersedia di sistem untuk diunduh!");
+                return;
+            }
+
+            // Memetakan struktur data aplikasi ke dalam format baris & kolom laporan Excel
+            const barisDataExcel = dataPelanggan.map(p => ({
+                "ID Pelanggan": p.id,
+                "Nama Pelanggan": p.nama,
+                "Alamat": p.alamat,
+                "Status Aliran Listrik": p.status,
+                "Total Penggunaan (kWh)": p.kwh,
+                "Tegangan Sensor (V)": p.tegangan,
+                "Arus Beban (A)": p.arus,
+                "Daya Aktif (W)": p.daya_watt,
+                "Total Tunggakan (Rp)": p.tagihan,
+                "Status Administrasi": p.lunas ? "Lunas" : "Ada Tunggakan"
+            }));
+
+            // Membuat worksheet baru dari JSON data di atas
+            const worksheet = XLSX.utils.json_to_sheet(barisDataExcel);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Laporan Pelanggan");
+
+            // Mengatur lebar kolom otomatis agar terlihat rapi saat dibuka
+            const lebarKolom = Object.keys(barisDataExcel[0]).map(key => ({
+                wch: Math.max(key.length, ...barisDataExcel.map(row => row[key] ? row[key].toString().length : 10)) + 3
+            }));
+            worksheet['!cols'] = lebarKolom;
+
+            // Generate nama file dinamis menggunakan timestamp waktu saat ini
+            const tanggalSekarang = new Date().toISOString().slice(0, 10);
+            const namaFile = `Laporan_Sistem_IoT_PLN_${tanggalSekarang}.xlsx`;
+
+            // Eksekusi download file ke device user
+            XLSX.writeFile(workbook, namaFile);
+        }
+
+        function hapusSatuBaris(idx) {
+            const namaPelanggan = dataPelanggan[idx].nama;
+            if(confirm(`Apakah Anda yakin ingin menghapus pelanggan "${namaPelanggan}"?`)) {
+                dataPelanggan.splice(idx, 1);
+                simpanDataKeStorage();
+                renderSemuaData();
+            }
+        }
+
+        function hapusSemuaDataSimulasi() {
+            if(confirm("PERINGATAN! Seluruh data pelanggan di sistem akan dibersihkan secara permanen. Lanjutkan?")) {
+                dataPelanggan = [];
+                logAktivitas = [];
+                simpanDataKeStorage();
+                renderSemuaData();
+            }
+        }
+
+        // ==========================================
+        // RENDERING TAMPILAN UI
+        // ==========================================
+        function renderSemuaData() {
+            const skrg = new Date();
+            const clockEl = document.getElementById('live-clock');
+            if (clockEl) clockEl.innerText = skrg.toLocaleTimeString('id-ID') + " WIB";
+
             document.getElementById('dash-total-user').innerText = dataPelanggan.length;
             document.getElementById('dash-active-user').innerText = dataPelanggan.filter(p => p.status === "AKTIF").length;
             document.getElementById('dash-cut-user').innerText = dataPelanggan.filter(p => p.status === "TERPUTUS").length;
 
-            // Render Log Aktivitas Real-Time
             document.getElementById('log-table-body').innerHTML = logAktivitas.map(log => `
-                <tr><td>${log.waktu}</td><td><code style="background:#f1f5f9; padding:4px 8px; border-radius:6px;">${log.id}</code></td><td>${log.aksi}</td><td><span class='badge badge-active'>${log.status}</span></td></tr>
-            `).join('');
-
-            // Render Menu Kontrol Pemutusan Sakelar
-            document.getElementById('pemutusan-table-body').innerHTML = dataPelanggan.map((p, idx) => `
                 <tr>
-                    <td><code>${p.id}</code></td>
-                    <td><strong>${p.nama}</strong></td>
-                    <td><span class="badge ${p.status === 'AKTIF' ? 'badge-active' : 'badge-cut'}">${p.status}</span></td>
-                    <td>
-                        <button class="btn ${p.status === 'AKTIF' ? 'btn-danger' : 'btn-success'}" onclick="toggleListrik(${idx})">
-                            <span class="material-icons-round" style="font-size:16px;">${p.status === 'AKTIF' ? 'power_off' : 'bolt'}</span>
-                            ${p.status === 'AKTIF' ? 'Putuskan Aliran' : 'Hubungkan Aliran'}
-                        </button>
-                    </td>
+                    <td>${log.waktu}</td>
+                    <td><code style="background:#f1f5f9; padding:4px 8px; border-radius:6px;">${log.id}</code></td>
+                    <td>${log.aksi}</td>
+                    <td><span class='badge badge-active'>${log.status}</span></td>
                 </tr>
             `).join('');
 
-            // Render Menu Pembacaan Sensor kWh Real-Time (Disertai Parameter Daya Sekarang W)
+            document.getElementById('pemutusan-table-body').innerHTML = dataPelanggan.map((p, idx) => {
+                const warnaTombol = p.status === 'AKTIF' ? 'btn-danger' : 'btn-success';
+                const iconTombol = p.status === 'AKTIF' ? 'power_off' : 'bolt';
+                const teksTombol = p.status === 'AKTIF' ? 'Putuskan Aliran' : 'Hubungkan Aliran';
+                const badgeStatus = p.status === 'AKTIF' ? 'badge-active' : 'badge-cut';
+
+                return `
+                    <tr>
+                        <td><code>${p.id}</code></td>
+                        <td><strong>${p.nama}</strong></td>
+                        <td><small>${p.alamat}</small></td>
+                        <td><span class="badge ${badgeStatus}">${p.status}</span></td>
+                        <td>
+                            <button class="btn ${warnaTombol}" onclick="toggleListrik(${idx})">
+                                <span class="material-icons-round" style="font-size:16px;">${iconTombol}</span>
+                                ${teksTombol}
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
             document.getElementById('pembacaan-table-body').innerHTML = dataPelanggan.map(p => `
                 <tr>
                     <td><code>${p.id}</code></td>
                     <td>${p.nama}</td>
+                    <td><small>${p.alamat}</small></td>
                     <td><span style="color:var(--accent-color); font-weight:600">${p.kwh.toFixed(2)} kWh</span></td>
                     <td>${p.tegangan.toFixed(1)} V</td>
                     <td>${p.arus.toFixed(1)} A</td>
                     <td><span style="color:var(--warning); font-weight:600">${p.daya_watt.toFixed(1)} W</span></td>
-                    <td style="color:var(--text-muted); font-size:12px;">Baru saja</td>
                 </tr>
             `).join('');
 
-            // Render Menu Tagihan & Keuangan Pelanggan
             document.getElementById('tagihan-table-body').innerHTML = dataPelanggan.map(p => `
                 <tr>
                     <td><code>${p.id}</code></td>
                     <td>${p.nama}</td>
+                    <td><small>${p.alamat}</small></td>
                     <td>${p.kwh.toFixed(1)} kWh</td>
                     <td><strong>Rp ${p.tagihan.toLocaleString('id-ID')}</strong></td>
                     <td><span class="badge ${p.lunas ? 'badge-active' : 'badge-cut'}">${p.lunas ? 'Lunas' : 'Ada Tunggakan'}</span></td>
                     <td><span style="font-weight:600; color:${p.lunas ? 'var(--success)' : 'var(--danger)'}">${p.lunas ? 'Sistem Aman' : 'Rekomendasi Putus'}</span></td>
                 </tr>
             `).join('');
+
+            const kelolaBody = document.getElementById('kelola-table-body');
+            if(kelolaBody) {
+                kelolaBody.innerHTML = dataPelanggan.map((p, idx) => `
+                    <tr>
+                        <td><code>${p.id}</code></td>
+                        <td>${p.nama}</td>
+                        <td><small>${p.alamat}</small></td>
+                        <td><span class="badge ${p.status === 'AKTIF' ? 'badge-active' : 'badge-cut'}">${p.status}</span></td>
+                        <td>Rp ${p.tagihan.toLocaleString('id-ID')}</td>
+                        <td>
+                            <button class="btn btn-danger" style="padding: 6px 12px; font-size:12px;" onclick="hapusSatuBaris(${idx})">
+                                <span class="material-icons-round" style="font-size:14px;">delete</span> Hapus
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+            }
         }
 
-        function toggleListrik(idx) {
-    const p = dataPelanggan[idx];
-    
-    // Format: DD/MM/YYYY HH:MM
-    const sekarang = new Date();
-    const tanggal = sekarang.toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' });
-    const jam = sekarang.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace('.', ':');
-    const waktuFull = `${tanggal} ${jam}`;
-    
-    if(p.status === "AKTIF") {
-        if(confirm(`Matikan listrik meteran ${p.id} (${p.nama})?`)) {
-            p.status = "TERPUTUS"; p.tegangan = 0; p.arus = 0; p.daya_watt = 0;
-            logAktivitas.unshift({ waktu: waktuFull, id: p.id, aksi: "Relay Dimatikan via Web Admin", status: "BERHASIL" });
+        async function toggleListrik(idx) {
+            const p = dataPelanggan[idx];
+            const nilaiTarget = p.status === "AKTIF" ? 0 : 1;
+            
+            const sekarang = new Date();
+            const tanggal = sekarang.toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            const jam = sekarang.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace('.', ':');
+            const waktuFull = `${tanggal} ${jam}`;
+            
+            const pesanKonfirmasi = p.status === "AKTIF" ? `Matikan listrik meteran ${p.id} (${p.nama})?` : `Hidupkan kembali listrik meteran ${p.id} (${p.nama})?`;
+            
+            if(!confirm(pesanKonfirmasi)) return;
+
+            try {
+                const respon = await fetch(`${BLYNK_API_URL}/update?token=${BLYNK_AUTH_TOKEN}&v1=${nilaiTarget}`);
+                
+                if(respon.ok) {
+                    if(p.status === "AKTIF") {
+                        p.status = "TERPUTUS"; p.tegangan = 0; p.arus = 0; p.daya_watt = 0;
+                        logAktivitas.unshift({ waktu: waktuFull, id: p.id, aksi: "Relay Dimatikan via Blynk IoT API", status: "BERHASIL" });
+                    } else {
+                        p.status = "AKTIF"; p.tegangan = 220; p.arus = 1.2; p.daya_watt = 264;
+                        logAktivitas.unshift({ waktu: waktuFull, id: p.id, aksi: "Relay Dihidupkan via Blynk IoT API", status: "BERHASIL" });
+                    }
+                    simpanDataKeStorage();
+                    renderSemuaData();
+                } else {
+                    alert("Gagal terhubung ke Blynk. Periksa kembali AUTH TOKEN Anda.");
+                }
+            } catch (error) {
+                console.error("Error Blynk API:", error);
+                alert("Kesalahan Jaringan saat menghubungi Blynk IoT Cloud.");
+            }
         }
-    } else {
-        if(confirm(`Hidupkan kembali listrik meteran ${p.id} (${p.nama})?`)) {
-            p.status = "AKTIF"; p.tegangan = 220; p.arus = 1.5; p.daya_watt = 330;
-            logAktivitas.unshift({ waktu: waktuFull, id: p.id, aksi: "Relay Dihidupkan via Web Admin", status: "BERHASIL" });
+
+        async function sinkronisasiDataBlynk() {
+            try {
+                const respon = await fetch(`${BLYNK_API_URL}/get?token=${BLYNK_AUTH_TOKEN}&v2`);
+                if (respon.ok) {
+                    const nilaiKwhDariSensor = await respon.text();
+                    if(nilaiKwhDariSensor && !isNaN(nilaiKwhDariSensor) && dataPelanggan.length > 0) {
+                        dataPelanggan[0].kwh = parseFloat(nilaiKwhDariSensor);
+                        simpanDataKeStorage();
+                        renderSemuaData();
+                    }
+                }
+            } catch (error) {
+                console.log("Menunggu koneksi hardware...", error);
+            }
         }
-    }
-    renderSemuaData();
-}
 
         function simulasiKenaikanKwh() {
+            if(dataPelanggan.length === 0) {
+                alert("Silakan unggah data Excel terlebih dahulu!");
+                return;
+            }
             dataPelanggan.forEach(p => {
                 if(p.status === "AKTIF") {
                     p.kwh += Math.random() * 0.8;
@@ -408,14 +664,22 @@
                     p.daya_watt = +(p.tegangan * p.arus).toFixed(1);
                 }
             });
+            simpanDataKeStorage();
             renderSemuaData();
         }
 
-        // Timer Jam Digital
+        // Sinkronisasi otomatis
         setInterval(() => {
-            const timeStr = new Date().toLocaleTimeString('id-ID') + " WIB";
+            if(document.getElementById('main-layout').style.display === 'block') {
+                sinkronisasiDataBlynk();
+            }
+        }, 5000);
+
+        setInterval(() => {
             const clockEl = document.getElementById('live-clock');
-            if (clockEl) clockEl.innerText = timeStr;
+            if (clockEl && document.getElementById('main-layout').style.display === 'block') {
+                clockEl.innerText = new Date().toLocaleTimeString('id-ID') + " WIB";
+            }
         }, 1000);
     </script>
 </body>

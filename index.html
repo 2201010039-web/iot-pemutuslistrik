@@ -6,11 +6,12 @@
     <title>Dashboard Monitoring IoT & Kontrol Listrik - PLN ULP Bintan Center</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
-    
-    <!-- Library Chart.js dan XLSX (SheetJS) -->
+
+    <!-- Library Chart.js, XLSX (SheetJS), dan MQTT.js (untuk koneksi IoT) -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    
+    <script src="https://cdn.jsdelivr.net/npm/mqtt/dist/mqtt.min.js"></script>
+
     <style>
         :root {
             --bg-primary: #f1f5f9;
@@ -91,10 +92,29 @@
             font-weight: 500;
         }
 
+        .conn-status {
+            font-size: 11px;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .conn-status.online { background: var(--success-light); color: var(--success); }
+        .conn-status.offline { background: var(--danger-light); color: var(--danger); }
+        .conn-dot {
+            width: 7px; height: 7px; border-radius: 50%;
+            background: currentColor;
+        }
+
         .status-pill-container {
             display: flex;
             justify-content: center;
+            align-items: center;
+            gap: 10px;
             margin-bottom: 12px;
+            flex-wrap: wrap;
         }
 
         .status-pill {
@@ -354,9 +374,15 @@
                     <p>Dashboard Monitoring IoT & Pemutusan Listrik Pelanggan</p>
                 </div>
             </div>
-            <div class="server-time">
-                <span class="material-icons-round" style="color: var(--accent-color); font-size: 16px;">schedule</span>
-                <span id="live-clock">--:--:--</span>
+            <div style="display:flex; align-items:center; gap:8px;">
+                <div id="mqtt-status" class="conn-status offline">
+                    <span class="conn-dot"></span>
+                    <span id="mqtt-status-text">Menghubungkan...</span>
+                </div>
+                <div class="server-time">
+                    <span class="material-icons-round" style="color: var(--accent-color); font-size: 16px;">schedule</span>
+                    <span id="live-clock">--:--:--</span>
+                </div>
             </div>
         </header>
 
@@ -371,7 +397,7 @@
                 <div class="metric-title">Tegangan PLN (V)</div>
                 <div class="gauge-wrapper">
                     <canvas id="gaugeTegangan"></canvas>
-                    <div class="gauge-value-display"><div class="val" id="val-tegangan">232.9</div></div>
+                    <div class="gauge-value-display"><div class="val" id="val-tegangan">0.0</div></div>
                 </div>
                 <div class="gauge-ticks"><span>0</span><span>Volt</span><span>250</span></div>
             </div>
@@ -380,7 +406,7 @@
                 <div class="metric-title">Daya (W)</div>
                 <div class="gauge-wrapper">
                     <canvas id="gaugeDaya"></canvas>
-                    <div class="gauge-value-display"><div class="val" id="val-daya">43.3</div></div>
+                    <div class="gauge-value-display"><div class="val" id="val-daya">0.0</div></div>
                 </div>
                 <div class="gauge-ticks"><span>0</span><span>Watt</span><span>450</span></div>
             </div>
@@ -389,7 +415,7 @@
                 <div class="metric-title">Arus (A)</div>
                 <div class="gauge-wrapper">
                     <canvas id="gaugeArus"></canvas>
-                    <div class="gauge-value-display"><div class="val" id="val-arus">0.508</div></div>
+                    <div class="gauge-value-display"><div class="val" id="val-arus">0.000</div></div>
                 </div>
                 <div class="gauge-ticks"><span>0</span><span>Ampere</span><span>10</span></div>
             </div>
@@ -398,7 +424,7 @@
                 <div class="metric-title">Konsumsi Energi (kWh)</div>
                 <div class="gauge-wrapper">
                     <canvas id="gaugeUps"></canvas>
-                    <div class="gauge-value-display"><div class="val" id="val-ups">118.3</div></div>
+                    <div class="gauge-value-display"><div class="val" id="val-ups">0.0</div></div>
                 </div>
                 <div class="gauge-ticks"><span>0</span><span>kWh</span><span>600</span></div>
             </div>
@@ -429,10 +455,9 @@
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
                 <div>
                     <h3 style="font-size: 14px; font-weight: 600;">Pemutusan Listrik & Data Pelanggan</h3>
-                    <p style="font-size: 11px; color: var(--text-muted);">Gunakan sakelar untuk memutuskan arus listrik tiap pelanggan</p>
+                    <p style="font-size: 11px; color: var(--text-muted);">Gunakan sakelar untuk memutuskan arus listrik tiap pelanggan. Baris pertama terhubung ke perangkat IoT prototipe.</p>
                 </div>
                 <div class="btn-group">
-                    
                     <button class="btn btn-primary" onclick="unduhLaporanExcel()">
                         <span class="material-icons-round" style="font-size: 14px;">download</span> Unduh Excel
                     </button>
@@ -471,40 +496,118 @@
     </div>
 
     <script>
-        // DATA DEFAULT & PENGUKURAN
+        // =====================================================================
+        // KONFIGURASI KONEKSI MQTT — SESUAIKAN DENGAN BROKER/SERVER ANDA SENDIRI
+        // =====================================================================
+        // brokerUrl HARUS memakai WebSocket (ws:// atau wss://), bukan mqtt://,
+        // karena browser tidak bisa membuka koneksi TCP mentah.
+        // Broker seperti Mosquitto/EMQX/HiveMQ perlu listener WebSocket aktif
+        // (contoh port umum: 8083 untuk ws, 8084 untuk wss).
+        const MQTT_CONFIG = {
+            brokerUrl: 'wss://alamat-broker-anda.com:8084/mqtt', // GANTI dengan URL broker Anda
+            username: 'USERNAME_ANDA',                            // GANTI
+            password: 'PASSWORD_ANDA',                            // GANTI
+            topicData: 'pln/bintan/prototipe1/data',              // topic tempat ESP32 publish data sensor
+            topicKontrol: 'pln/bintan/prototipe1/kontrol'         // topic untuk kirim perintah ON/OFF relay
+        };
+
+        // DATA PELANGGAN (baris index 0 = perangkat IoT prototipe yang terhubung nyata)
         let dataPelanggan = JSON.parse(localStorage.getItem('pln_data_pelanggan')) || [
-            { id: "53711002341", nama: "Ahmad Dahlan", alamat: "Jl. Merdeka No. 12", kwh: 145.2, status: "AKTIF" },
+            { id: "53711002341", nama: "Ahmad Dahlan (Prototipe IoT)", alamat: "Jl. Merdeka No. 12", kwh: 0, status: "AKTIF" },
             { id: "53711002342", nama: "Budi Santoso", alamat: "Komp. Bintan Asri B-4", kwh: 289.0, status: "AKTIF" },
             { id: "53711002343", nama: "Siti Rahma", alamat: "Jl. Pemuda No. 45", kwh: 92.5, status: "TERPUTUS" }
         ];
 
-        // Nilai Normal saat Listrik ON
-        const normalMetrics = {
-            tegangan: 232.9,
-            daya: 43.3,
-            arus: 0.508,
-            ups: 118.3,
-            chartTegangan: [231.6, 231.4, 232.1, 232.3, 236.0, 233.8, 232.9],
-            chartDaya: [44.4, 44.4, 44.2, 44.5, 42.8, 43.2, 43.3],
-            chartArus: [0.32, 0.32, 0.31, 0.31, 0.52, 0.51, 0.508],
-            chartUps: [73, 73.5, 73, 72.8, 122, 119, 118.3]
-        };
-
         const maxLimits = { tegangan: 250, daya: 450, arus: 10, ups: 600 };
         const timeLabels = ['16:55:00', '16:55:30', '16:56:00', '16:56:30', '16:57:00', '16:57:30', '16:58:00'];
-        
+
         let chartInstances = {};
+        let mqttClient = null;
+        let mqttConnected = false;
 
         function simpanKeStorage() {
             localStorage.setItem('pln_data_pelanggan', JSON.stringify(dataPelanggan));
         }
 
-        // UPDATE METRIK & GRAFIK (ON/OFF DYNAMIC)
-        function updateDashboardState() {
-            const isAnyActive = dataPelanggan.some(p => p.status === 'AKTIF');
-            const statusPill = document.getElementById('pln-status-pill');
+        // =====================================================================
+        // KONEKSI MQTT
+        // =====================================================================
+        function setMqttStatusUi(status) {
+            const box = document.getElementById('mqtt-status');
+            const text = document.getElementById('mqtt-status-text');
+            if (status === 'online') {
+                box.classList.remove('offline');
+                box.classList.add('online');
+                text.textContent = 'IoT Terhubung';
+            } else if (status === 'connecting') {
+                box.classList.remove('online', 'offline');
+                text.textContent = 'Menghubungkan...';
+            } else {
+                box.classList.remove('online');
+                box.classList.add('offline');
+                text.textContent = 'IoT Terputus';
+            }
+        }
 
-            if (isAnyActive) {
+        function initMqtt() {
+            setMqttStatusUi('connecting');
+            mqttClient = mqtt.connect(MQTT_CONFIG.brokerUrl, {
+                username: MQTT_CONFIG.username,
+                password: MQTT_CONFIG.password,
+                reconnectPeriod: 5000,
+                connectTimeout: 8000
+            });
+
+            mqttClient.on('connect', () => {
+                mqttConnected = true;
+                setMqttStatusUi('online');
+                mqttClient.subscribe(MQTT_CONFIG.topicData);
+            });
+
+            mqttClient.on('reconnect', () => setMqttStatusUi('connecting'));
+
+            mqttClient.on('close', () => {
+                mqttConnected = false;
+                setMqttStatusUi('offline');
+            });
+
+            mqttClient.on('error', (err) => {
+                console.error('Kesalahan MQTT:', err);
+                mqttConnected = false;
+                setMqttStatusUi('offline');
+            });
+
+            mqttClient.on('message', (topic, message) => {
+                if (topic === MQTT_CONFIG.topicData) {
+                    try {
+                        const data = JSON.parse(message.toString());
+                        handleSensorData(data);
+                    } catch (e) {
+                        console.error('Payload MQTT tidak valid (harus JSON):', e);
+                    }
+                }
+            });
+        }
+
+        // Dipanggil setiap kali data baru masuk dari ESP32.
+        // Format payload yang diharapkan dari perangkat:
+        // { "tegangan": 231.8, "arus": 0.31, "daya": 44.1, "kwh": 118.6, "relay": "ON" }
+        function handleSensorData(data) {
+            const tegangan = Number(data.tegangan) || 0;
+            const arus = Number(data.arus) || 0;
+            const daya = Number(data.daya) || 0;
+            const kwh = Number(data.kwh) || 0;
+            const relayOn = data.relay === 'ON';
+
+            // Sinkronkan status baris pelanggan prototipe (index 0) dengan status relay asli
+            if (dataPelanggan.length > 0) {
+                dataPelanggan[0].status = relayOn ? 'AKTIF' : 'TERPUTUS';
+                dataPelanggan[0].kwh = kwh;
+                renderTabelData();
+            }
+
+            const statusPill = document.getElementById('pln-status-pill');
+            if (relayOn) {
                 statusPill.textContent = "Status PLN: Menyala";
                 statusPill.classList.add('status-on');
             } else {
@@ -512,31 +615,54 @@
                 statusPill.classList.remove('status-on');
             }
 
-            // Set parameter angka
-            document.getElementById('val-tegangan').textContent = isAnyActive ? normalMetrics.tegangan : "0.0";
-            document.getElementById('val-daya').textContent = isAnyActive ? normalMetrics.daya : "0.0";
-            document.getElementById('val-arus').textContent = isAnyActive ? normalMetrics.arus : "0.000";
-            document.getElementById('val-ups').textContent = isAnyActive ? normalMetrics.ups : "0.0";
+            document.getElementById('val-tegangan').textContent = tegangan.toFixed(1);
+            document.getElementById('val-daya').textContent = daya.toFixed(1);
+            document.getElementById('val-arus').textContent = arus.toFixed(3);
+            document.getElementById('val-ups').textContent = kwh.toFixed(1);
 
-            // Update Gauge Charts
-            updateGauge('gaugeTegangan', isAnyActive ? normalMetrics.tegangan : 0, maxLimits.tegangan, '#dc2626');
-            updateGauge('gaugeDaya', isAnyActive ? normalMetrics.daya : 0, maxLimits.daya, '#10b981');
-            updateGauge('gaugeArus', isAnyActive ? normalMetrics.arus : 0, maxLimits.arus, '#10b981');
-            updateGauge('gaugeUps', isAnyActive ? normalMetrics.ups : 0, maxLimits.ups, '#10b981');
+            updateGauge('gaugeTegangan', tegangan, maxLimits.tegangan, '#dc2626');
+            updateGauge('gaugeDaya', daya, maxLimits.daya, '#10b981');
+            updateGauge('gaugeArus', arus, maxLimits.arus, '#10b981');
+            updateGauge('gaugeUps', kwh, maxLimits.ups, '#10b981');
 
-            // Update Line Charts
-            const zeroChartData = Array(timeLabels.length).fill(0);
-            updateLineChart('chartTegangan', isAnyActive ? normalMetrics.chartTegangan : zeroChartData);
-            updateLineChart('chartDaya', isAnyActive ? normalMetrics.chartDaya : zeroChartData);
-            updateLineChart('chartArus', isAnyActive ? normalMetrics.chartArus : zeroChartData);
-            updateLineChart('chartUps', isAnyActive ? normalMetrics.chartUps : zeroChartData);
+            pushToChart('chartTegangan', tegangan);
+            pushToChart('chartDaya', daya);
+            pushToChart('chartArus', arus);
+            pushToChart('chartUps', kwh);
         }
 
+        // Menggeser grafik: buang titik paling lama, tambahkan titik baru di kanan
+        function pushToChart(canvasId, value) {
+            const chart = chartInstances[canvasId];
+            if (!chart) return;
+            const ds = chart.data.datasets[0].data;
+            ds.push(value);
+            ds.shift();
+            chart.data.labels.push(new Date().toLocaleTimeString('id-ID'));
+            chart.data.labels.shift();
+            chart.update();
+        }
+
+        // =====================================================================
+        // KONTROL SAKELAR PEMUTUSAN
+        // =====================================================================
         function ubahStatusListrik(index, isChecked) {
             dataPelanggan[index].status = isChecked ? "AKTIF" : "TERPUTUS";
             simpanKeStorage();
             renderTabelData();
-            updateDashboardState();
+
+            // Hanya baris index 0 yang terhubung ke perangkat IoT nyata pada prototipe ini.
+            // Untuk banyak titik, gunakan topic unik per pelanggan (misal `pln/kontrol/${id}`)
+            // dan ESP32 masing-masing subscribe topic miliknya sendiri.
+            if (index === 0) {
+                if (mqttConnected) {
+                    mqttClient.publish(MQTT_CONFIG.topicKontrol, isChecked ? "ON" : "OFF");
+                } else {
+                    alert('Tidak terhubung ke broker MQTT. Perintah TIDAK terkirim ke perangkat.');
+                }
+            } else {
+                updateDashboardState();
+            }
         }
 
         function toggleSemuaListrik(nyalakan) {
@@ -544,12 +670,20 @@
             dataPelanggan.forEach(p => p.status = statusBaru);
             simpanKeStorage();
             renderTabelData();
-            updateDashboardState();
+            if (mqttConnected) {
+                mqttClient.publish(MQTT_CONFIG.topicKontrol, nyalakan ? "ON" : "OFF");
+            }
+        }
+
+        // Fallback tampilan jika belum ada data IoT sama sekali (baris selain index 0)
+        function updateDashboardState() {
+            // Fungsi ini hanya dipakai untuk baris pelanggan simulasi (bukan device nyata).
+            // Nilai gauge/grafik utama selalu didorong oleh handleSensorData() dari MQTT.
         }
 
         function renderTabelData() {
             const tbody = document.getElementById('pelanggan-table-body');
-            
+
             if (dataPelanggan.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color: var(--text-muted);">Belum ada data pelanggan. Silakan unggah berkas Excel.</td></tr>`;
                 return;
@@ -563,11 +697,11 @@
                             <span class="slider"></span>
                         </label>
                     </td>
-                    <td><b>${p.id}</b></td>
+                    <td><b>${p.id}</b> ${idx === 0 ? '<span class="badge badge-active" style="background:#e0f2fe;color:#0284c7;">IoT</span>' : ''}</td>
                     <td>${p.nama}</td>
                     <td>${p.alamat}</td>
                     <td><span class="badge ${p.status === 'AKTIF' ? 'badge-active' : 'badge-cut'}">${p.status}</span></td>
-                    <td>${p.kwh} kWh</td>
+                    <td>${Number(p.kwh).toFixed(1)} kWh</td>
                     <td>
                         <button class="btn btn-danger" style="padding: 2px 6px; font-size: 10px;" onclick="hapusItem(${idx})">
                             <span class="material-icons-round" style="font-size: 12px;">delete</span> Hapus
@@ -577,7 +711,9 @@
             `).join('');
         }
 
-        // HELPER FUNGSI INSIALISASI & UPDATE CHART
+        // =====================================================================
+        // HELPER GRAFIK (GAUGE & LINE)
+        // =====================================================================
         function createGauge(canvasId, value, maxVal, color) {
             const ctx = document.getElementById(canvasId).getContext('2d');
             chartInstances[canvasId] = new Chart(ctx, {
@@ -637,14 +773,9 @@
             });
         }
 
-        function updateLineChart(canvasId, data) {
-            if (chartInstances[canvasId]) {
-                chartInstances[canvasId].data.datasets[0].data = data;
-                chartInstances[canvasId].update();
-            }
-        }
-
-        // PROSES FILE EXCEL & OPERASI
+        // =====================================================================
+        // EXCEL & OPERASI DATA (tetap seperti versi sebelumnya)
+        // =====================================================================
         function prosesFileExcel(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -673,10 +804,9 @@
 
                 simpanKeStorage();
                 renderTabelData();
-                updateDashboardState();
                 alert('Data Excel berhasil diunggah!');
             };
-            reader.readAsBuffer(file);
+            reader.readAsArrayBuffer(file);
         }
 
         function unduhLaporanExcel() {
@@ -695,7 +825,6 @@
                 dataPelanggan = [];
                 simpanKeStorage();
                 renderTabelData();
-                updateDashboardState();
             }
         }
 
@@ -703,11 +832,9 @@
             dataPelanggan.splice(index, 1);
             simpanKeStorage();
             renderTabelData();
-            updateDashboardState();
         }
 
         window.onload = function() {
-            // Inisialisasi Canvas
             createGauge('gaugeTegangan', 0, maxLimits.tegangan, '#dc2626');
             createGauge('gaugeDaya', 0, maxLimits.daya, '#10b981');
             createGauge('gaugeArus', 0, maxLimits.arus, '#10b981');
@@ -718,9 +845,8 @@
             createLineChart('chartArus', timeLabels, Array(timeLabels.length).fill(0), 0, 1);
             createLineChart('chartUps', timeLabels, Array(timeLabels.length).fill(0), 0, 150);
 
-            // Render awal
             renderTabelData();
-            updateDashboardState();
+            initMqtt(); // <-- mulai koneksi ke broker IoT Anda
         };
 
         setInterval(() => {

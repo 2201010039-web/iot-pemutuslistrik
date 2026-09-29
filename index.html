@@ -592,11 +592,10 @@
             setInterval(bacaFirebase,2000);
         }
 
-        // DATA DEFAULT & PENGUKURAN
+         // DATA DEFAULT & PENGUKURAN
         let dataPelanggan = JSON.parse(localStorage.getItem('pln_data_pelanggan')) || [
-            { id: "53711002341", nama: "Ahmad Dahlan", alamat: "Jl. Merdeka No. 12", kwh: 145.2, status: "AKTIF" },
-            { id: "53711002342", nama: "Budi Santoso", alamat: "Komp. Bintan Asri B-4", kwh: 289.0, status: "AKTIF" },
-            { id: "53711002343", nama: "Siti Rahma", alamat: "Jl. Pemuda No. 45", kwh: 92.5, status: "TERPUTUS" }
+            { IDPEL: "183010558449", NAMA: "PERUM CITRA PELITA 10 B6", ALAMAT: "JL. RAYA TG UBAN KM 16", kwh: 145.2, status: "AKTIF" },
+            
         ];
 
         // Nilai Normal saat Listrik ON
@@ -749,7 +748,7 @@
             }
         }
 
-        // PROSES FILE EXCEL & OPERASI
+               // PROSES FILE EXCEL & OPERASI
         function prosesFileExcel(event) {
             const file = event.target.files[0];
             if (!file) return;
